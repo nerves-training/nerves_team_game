@@ -88,7 +88,7 @@ defmodule NervesTeamGame.Game do
           score = s.score + @task_points
           task = %{task | player_id: nil, timer_ref: nil}
           {_, tasks} = Enum.split_with(tasks, & &1.id == task.id)
-          broadcast(players, "game:progress", %{percent: s.score / (s.max - s.min)})
+          broadcast(players, "game:progress", %{percent: (s.score - s.min) / (s.max - s.min)})
           %{s | tasks: [task | tasks], score: score}
       end
 
@@ -183,7 +183,7 @@ defmodule NervesTeamGame.Game do
     timer_ref = Process.send_after(self(), {:task_expired, task}, task.expire)
     task = Map.put(task, :timer_ref, timer_ref)
 
-    send(player.pid, {"task:assigned", task})
+    send(player.pid, {"task:assigned", %{task: task}})
     {_, tasks} = Enum.split_with(tasks, & &1.id == task.id)
 
     {:noreply, %{s | tasks: [task | tasks]}}

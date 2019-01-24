@@ -40,8 +40,13 @@ defmodule NervesTeamGame.Lobby do
     ids = Enum.map(players, &elem(&1, 1).id)
     id = Enum.uniq(@ids -- ids) |> Enum.random
 
+
     monitor_ref = Process.monitor(pid)
     player = %Player{id: id, pid: pid, monitor_ref: monitor_ref}
+
+    send(player.pid, {"player:state", %{players: Map.values(players)}})
+    send(player.pid, {"player:assigned", player})
+    broadcast(players, "player:joined", player)
 
     {:reply, {:ok, player}, %{s | players: Map.put(players, id, player)}}
   end
@@ -55,7 +60,7 @@ defmodule NervesTeamGame.Lobby do
       player ->
         player = Map.put(player, :ready, ready?)
         players = Map.put(players, id, player)
-
+        broadcast(players, "player:ready", player)
         ready = Enum.filter(players, &elem(&1, 1).ready == true)
         ready_count = Enum.count(ready)
         s = %{s | players: players}
