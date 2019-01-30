@@ -29,16 +29,17 @@ defmodule NervesTeamGame.Lobby do
 
   @impl true
   def init(_opts) do
-    {:ok, %{
-      timer_ref: nil,
-      players: %{}
-    }}
+    {:ok,
+     %{
+       timer_ref: nil,
+       players: %{}
+     }}
   end
 
   @impl true
   def handle_call({:add_player, pid}, _from, %{players: players} = s) do
     ids = Enum.map(players, &elem(&1, 1).id)
-    id = Enum.uniq(@ids -- ids) |> Enum.random
+    id = Enum.uniq(@ids -- ids) |> Enum.random()
 
     monitor_ref = Process.monitor(pid)
     player = %Player{id: id, pid: pid, monitor_ref: monitor_ref}
@@ -62,9 +63,10 @@ defmodule NervesTeamGame.Lobby do
         player = Map.put(player, :ready, ready?)
         players = Map.put(players, id, player)
         broadcast(players, "player:ready", player)
-        ready = Enum.filter(players, &elem(&1, 1).ready == true)
+        ready = Enum.filter(players, &(elem(&1, 1).ready == true))
         ready_count = Enum.count(ready)
         s = %{s | players: players}
+
         s =
           if ready_count > 1 do
             timer_ref = Process.send_after(self(), :game_start, @start_delay)
@@ -72,11 +74,14 @@ defmodule NervesTeamGame.Lobby do
             %{s | timer_ref: timer_ref}
           else
             broadcast(players, "game:wait", %{})
+
             if timer_ref = s.timer_ref do
               Process.cancel_timer(timer_ref)
             end
+
             %{s | timer_ref: nil}
           end
+
         {:reply, {:ok, player}, s}
     end
   end
@@ -88,7 +93,7 @@ defmodule NervesTeamGame.Lobby do
 
   @impl true
   def handle_info({:DOWN, monitor_ref, :process, _pid, _reason}, %{players: players} = s) do
-    {id, _} = Enum.find(players, &elem(&1, 1).monitor_ref == monitor_ref)
+    {id, _} = Enum.find(players, &(elem(&1, 1).monitor_ref == monitor_ref))
     {%{^id => player}, players} = Map.split(players, [id])
     broadcast(players, "player:left", player)
     broadcast(players, "player:list", %{players: Map.values(players)})
@@ -98,19 +103,26 @@ defmodule NervesTeamGame.Lobby do
   @impl true
   def handle_info(:game_start, s) do
     ready_ids =
-      Enum.filter(s.players, &elem(&1, 1).ready == true)
+      Enum.filter(s.players, &(elem(&1, 1).ready == true))
       |> Enum.map(&elem(&1, 1).id)
+
     ready = Map.take(s.players, ready_ids)
     ready_count = Enum.count(ready)
+
     if ready_count > 1 do
       game_id = System.unique_integer([:positive]) |> to_string()
       GameSupervisor.game_start(game_id, players: ready)
-      Enum.each(ready, &elem(&1, 1).pid |> send({"game:start", %{game_id: game_id, player_id: elem(&1, 1).id}}))
+
+      Enum.each(
+        ready,
+        &(elem(&1, 1).pid |> send({"game:start", %{game_id: game_id, player_id: elem(&1, 1).id}}))
+      )
     end
+
     {:noreply, s}
   end
 
   defp broadcast(players, event, payload) do
-    Enum.each(players, &elem(&1, 1).pid |> send({event, payload}))
+    Enum.each(players, &(elem(&1, 1).pid |> send({event, payload})))
   end
 end

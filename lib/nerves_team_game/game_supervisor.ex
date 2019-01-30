@@ -14,6 +14,7 @@ defmodule NervesTeamGame.GameSupervisor do
 
   def game_end(id) do
     name = Game.name(id)
+
     if pid = Process.whereis(name) do
       DynamicSupervisor.terminate_child(__MODULE__, pid)
     end
