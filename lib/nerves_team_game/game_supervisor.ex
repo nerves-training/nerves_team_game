@@ -20,7 +20,7 @@ defmodule NervesTeamGame.GameSupervisor do
   end
 
   @impl true
-  def init(opts) do
+  def init(_opts) do
     DynamicSupervisor.init(strategy: :one_for_one)
   end
 end
