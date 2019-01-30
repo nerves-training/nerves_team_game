@@ -40,15 +40,16 @@ defmodule NervesTeamGame.Lobby do
     ids = Enum.map(players, &elem(&1, 1).id)
     id = Enum.uniq(@ids -- ids) |> Enum.random
 
-
     monitor_ref = Process.monitor(pid)
     player = %Player{id: id, pid: pid, monitor_ref: monitor_ref}
 
-    send(player.pid, {"player:state", %{players: Map.values(players)}})
     send(player.pid, {"player:assigned", player})
     broadcast(players, "player:joined", player)
 
-    {:reply, {:ok, player}, %{s | players: Map.put(players, id, player)}}
+    players = Map.put(players, id, player)
+
+    broadcast(players, "player:list", %{players: Map.values(players)})
+    {:reply, {:ok, player}, %{s | players: players}}
   end
 
   @impl true
@@ -90,6 +91,7 @@ defmodule NervesTeamGame.Lobby do
     {id, _} = Enum.find(players, &elem(&1, 1).monitor_ref == monitor_ref)
     {%{^id => player}, players} = Map.split(players, [id])
     broadcast(players, "player:left", player)
+    broadcast(players, "player:list", %{players: Map.values(players)})
     {:noreply, %{s | players: players}}
   end
 
@@ -101,9 +103,9 @@ defmodule NervesTeamGame.Lobby do
     ready = Map.take(s.players, ready_ids)
     ready_count = Enum.count(ready)
     if ready_count > 1 do
-      game_id = System.unique_integer([:positive])
+      game_id = System.unique_integer([:positive]) |> to_string()
       GameSupervisor.game_start(game_id, players: ready)
-      Enum.each(ready, &elem(&1, 1).pid |> send({"game:start", %{id: game_id}}))
+      Enum.each(ready, &elem(&1, 1).pid |> send({"game:start", %{game_id: game_id, player_id: elem(&1, 1).id}}))
     end
     {:noreply, s}
   end

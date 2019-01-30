@@ -80,7 +80,9 @@ defmodule NervesTeamGame.Game do
         nil -> s
 
         task ->
-          Process.cancel_timer(task.timer_ref)
+          if ref = task.timer_ref do
+            Process.cancel_timer(ref)
+          end
 
           player = Map.get(players, task.player_id)
           assign_task(player)
@@ -150,7 +152,7 @@ defmodule NervesTeamGame.Game do
     # Start timer on all assigned tasks
     assigned_tasks = Enum.map(assigned_tasks, fn(task) ->
       player = Map.get(s.players, task.player_id)
-      send(player.pid, {"task:assigned", %{task: task}})
+      send(player.pid, {"task:assigned", task})
       timer_ref = Process.send_after(self(), {:task_expired, task}, task.expire)
       %{task | timer_ref: timer_ref}
     end)
@@ -183,7 +185,7 @@ defmodule NervesTeamGame.Game do
     timer_ref = Process.send_after(self(), {:task_expired, task}, task.expire)
     task = Map.put(task, :timer_ref, timer_ref)
 
-    send(player.pid, {"task:assigned", %{task: task}})
+    send(player.pid, {"task:assigned", task})
     {_, tasks} = Enum.split_with(tasks, & &1.id == task.id)
 
     {:noreply, %{s | tasks: [task | tasks]}}
@@ -226,7 +228,7 @@ defmodule NervesTeamGame.Game do
 
   defp game_over(players, win?) do
     broadcast(players, "game:ended", %{win?: win?})
-    send(self(), :stop)
+    Process.exit(self(), :normal)
   end
 
   defp assign_task(player) do
