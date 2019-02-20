@@ -161,7 +161,7 @@ defmodule NervesTeamGame.Lobby do
 
     if ready_count > 1 do
       game_id = System.unique_integer([:positive]) |> to_string()
-      GameSupervisor.game_start(game_id, players: ready)
+      {:ok, _pid} = GameSupervisor.game_start(game_id, players: ready)
 
       Enum.each(
         ready,

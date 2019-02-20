@@ -103,7 +103,7 @@ defmodule NervesTeamGame.Game do
 
   @impl true
   def handle_call({:player_join, player_id, player_pid}, _from, s) do
-    Logger.debug("Game #{s.id} | Player joined: #{player_id}")
+    _ = Logger.debug("Game #{s.id} | Player joined: #{player_id}")
     {%{^player_id => player}, waiting_players} = Map.split(s.waiting_players, [player_id])
     monitor_ref = Process.monitor(player_pid)
 
