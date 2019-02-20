@@ -104,7 +104,8 @@ defmodule NervesTeamGame.Game do
 
   @impl true
   def handle_info(:game_prepare, %{players: players} = s) do
-    broadcast(players, "game:prepare", %{})
+    delay = 2000
+    broadcast(players, "game:prepare", %{duration: delay})
 
     players = Map.values(players)
     player_count = Enum.count(players)
@@ -136,14 +137,15 @@ defmodule NervesTeamGame.Game do
 
     unassigned_tasks = Enum.reject(tasks, &(&1.id in assigned_task_ids))
 
-    Process.send_after(self(), :game_starting, 2_000)
+    Process.send_after(self(), :game_starting, delay)
     {:noreply, %{s | tasks: assigned_tasks ++ unassigned_tasks, actions: actions}}
   end
 
   @impl true
   def handle_info(:game_starting, s) do
-    broadcast(s.players, "game:starting", %{})
-    Process.send_after(self(), :game_start, 1_000)
+    delay = 1000
+    broadcast(s.players, "game:starting", %{duration: delay})
+    Process.send_after(self(), :game_start, delay)
     {:noreply, s}
   end
 
