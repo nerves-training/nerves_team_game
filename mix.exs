@@ -7,6 +7,9 @@ defmodule NervesTeamGame.MixProject do
       version: "0.1.0",
       elixir: "~> 1.8",
       start_permanent: Mix.env() == :prod,
+      dialyzer: [
+        flags: [:unmatched_returns, :error_handling, :race_conditions, :underspecs]
+      ],
       deps: deps()
     ]
   end
@@ -23,6 +26,8 @@ defmodule NervesTeamGame.MixProject do
   defp deps do
     [
       {:jason, "~> 1.1"},
+      {:ex_doc, "~> 0.11", only: :dev, runtime: false},
+      {:dialyxir, "1.0.0-rc.4", only: :dev, runtime: false}
     ]
   end
 end
