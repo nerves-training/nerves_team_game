@@ -1,4 +1,21 @@
 defmodule NervesTeamGame.Game do
+  @moduledoc """
+  Game Server Messages
+
+  Player messages
+
+    {"actions:assigned", [%NervesTeamGame.Game.Task.Action{}, ...]}
+    {"task:assigned", %NervesTeamGame.Game.Task{}}
+
+  Global messages
+
+    {"game:prepare", %{duration: 2000}}
+    {"game:starting", %{duration: 1000}}
+    {"game:start", %{}}
+    {"game:progress", %{percent: 0..100}}
+    {"game:ended", %{win?: true/false}}
+
+  """
   use GenServer
 
   alias NervesTeamGame.Game.Task
@@ -21,19 +38,49 @@ defmodule NervesTeamGame.Game do
     }
   end
 
+  @doc """
+  Start a new game server.
+
+  It is required that the players required to start the game be passed in the opts
+
+    players: [%NervesTeamGame.Player{}, ...]
+  """
   def start_link(id, opts \\ []) do
     GenServer.start_link(__MODULE__, {id, opts}, name: name(id))
   end
 
+  @doc """
+  Create a unique name for the game server process
+  """
   def name(id) do
     Module.concat(__MODULE__, to_string(id))
   end
 
+  @doc """
+  Join a player to the game server.
+
+  Once all players have joined, each player will receive the following messages
+  in order until the game has started
+
+    {"game:prepare", %{duration: 2000}}
+    {"game:starting", %{duration: 1000}}
+    {"game:start", %{}}
+
+  """
   def player_join(game_id, player_id, player_pid \\ nil) do
     player_pid = player_pid || self()
     GenServer.call(name(game_id), {:player_join, player_id, player_pid})
   end
 
+  @doc """
+  Execute an action in the game.
+
+  Players are assigned one task and two actions. An action corresponds to an
+  assigned task. If the action completes an open task, the player who was assigned
+  the task will be sent the message
+
+    {"task:assigned", %NervesTeamGame.Game.Task{}}
+  """
   def action_execute(game_id, action) do
     GenServer.cast(name(game_id), {:action_execute, action})
   end

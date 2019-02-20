@@ -1,4 +1,20 @@
 defmodule NervesTeamGame.Lobby do
+  @moduledoc """
+  Lobby Server Messages
+
+  Player messages
+
+    {"player:assigned", %NervesTeamGame.Player{}}
+    {"game:start", %{game_id: "", player_id: ""}}
+
+  Global messages
+
+    {"player:joined", %NervesTeamGame.Player{}}
+    {"player:left", %NervesTeamGame.Player{}}
+    {"player:list", [%NervesTeamGame.Player{}, ...]}
+    {"game:pending", %{duration: 1000}}
+    {"game:wait", %{}}
+  """
   use GenServer
 
   alias NervesTeamGame.{GameSupervisor, Player}
@@ -6,23 +22,57 @@ defmodule NervesTeamGame.Lobby do
   @ids "ABCDEFGHIJKLMNOPQRSTUVWXYZ" |> String.graphemes()
   @start_delay 2_000
 
+  @doc """
+  Start the lobby server
+  """
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
+  @doc """
+  Add a new player to the lobby. New players will be assigned a unique capital
+  letter.
+
+  The lobby server will monitor the pid of the caller and send messages in the
+  form of `{event, payload}`.
+
+  Once a unique id has been created, the player will be sent the message
+
+    {"player:assigned", %NervesTeamGame.Player{}}
+  """
   def add_player(pid \\ nil) do
     pid = pid || self()
     GenServer.call(__MODULE__, {:add_player, pid})
   end
 
+  @doc """
+  Remove a player from the lobby
+  """
   def remove_player(id) do
     GenServer.call(__MODULE__, {:remove_player, id})
   end
 
+  @doc """
+  Designate that the player may be ready to play a game.
+
+  If more then one player sets ready to true, the lobby will start a 2 second timer.
+  Upon expiration of the timer, if the number of players ready is greater than one,
+  the lobby will send all ready players a message:
+
+    {"game:start", %{game_id: "1234", player_id: "Z"}}
+
+  Upon receiving this message, the client should join the topic `game:1234` with
+  the join params `%{player_id: "Z"}`.
+
+  Players who were not ready at the time a game begins will remain in the lobby.
+  """
   def ready_player(id, ready?) do
     GenServer.call(__MODULE__, {:ready_player, id, ready?})
   end
 
+  @doc """
+  Return a list of all players in the lobby
+  """
   def players() do
     GenServer.call(__MODULE__, :players)
   end
