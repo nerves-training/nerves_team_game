@@ -9,8 +9,8 @@ defmodule NervesTeamGame.Game do
 
   Global messages
 
-    {"game:prepare", %{duration: 2000}}
-    {"game:starting", %{duration: 1000}}
+    {"game:prepare", %{duration: 1000}}
+    {"game:starting", %{duration: 2000}}
     {"game:start", %{}}
     {"game:progress", %{percent: 0..100}}
     {"game:ended", %{win?: true/false}}
@@ -62,8 +62,8 @@ defmodule NervesTeamGame.Game do
   Once all players have joined, each player will receive the following messages
   in order until the game has started
 
-    {"game:prepare", %{duration: 2000}}
-    {"game:starting", %{duration: 1000}}
+    {"game:prepare", %{duration: 1000}}
+    {"game:starting", %{duration: 2000}}
     {"game:start", %{}}
 
   """
