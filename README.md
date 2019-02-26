@@ -1,86 +1,68 @@
-# NervesTeamGame
+# NervesTeam Game Messaging
 
-NervesTeam Game Logic
-
-This application provides the game logic for playing NervesTeam. It handles
-messages from game clients and provides instructions for what those clients
-should show next on their screens. All game interactions are through
-function calls. Other modules glue this up to Phoenix Channels (or any
-other transport). The API uses JSON strings to pass messages that are documented below.
+This document describes the game messaging between a NervesTeam game server and
+clients over a Phoenix Channel connection.
 
 NervesTeam clients are in two main states:
 
 * Lobby - players connect here and wait for other players to join
 * Game - after players start a game, control moves to the game state. New players can't join mid-game.
 
-# Types
+The Phoenix channel topic `game:lobby` handles messaging while in the lobby.
+Once games begin, clients join a topic of the form `game:1234` where the number
+represents the game instance.
 
-## Players
+## Basic types
 
-One NervesTeam client supports one player. Players are represented in JSON as
+### Players
+
+One NervesTeam client supports one player. Each player has a single letter ID to
+fit on the display.
 
 ```json
 {
-  /* The player's name - one letter to fit on the display */
   "id": "a",
-
-  /*
-    * When the player is in the lobby, this indicates whether the player
-    * wants to join a game. I.e., are they pressing the join button.
-    */
   "ready": false,
-
-  /*
-    * In the game, this is the list of tasks for the player.
-    * Each task is a string.
-    */
   "tasks": []
 }
 ```
 
-See `NervesTeamGame.Player` for the Elixir representation.
+### Tasks
 
-## Tasks
-
-During the game, `Tasks` of demands of a player that may be satisfied by that
-player or another one.
+During the game, `Tasks` are given to each player. Each player receives a
+different set of tasks, but any player can perform the task by running an
+action. The `id` identifies the task. The `title` is what should be shown to the
+player.
 
 ```json
 {
-  /* Each task has a unique ID */
   "id": "nerves_time",
-
-  /* The title is shown to the player */
   "title": "1970-01-01",
-
-  /* Expire is the number of milliseconds that the player has for this task */
   "expire": 5000
 }
 ```
 
-## Actions
+### Actions
 
-Players are presented `Actions` to complete their tasks.
+Each player has `Actions` that they may use to complete tasks. The `id`
+identifies the action. The `title` is what should be shown to the player.
 
 ```json
   {
-  /* Each action has a unique ID */
   "id": "nerves_time",
-
-  /* The title is shown to the player */
   "title": "nerves\ntime",
 }
 ```
 
-# Messages
+## Messages
 
-## Lobby messages
+### Lobby messages
 
-Players always start in the lobby.
-
-### Client -> Server
+Players always start in the lobby by joining `game:lobby`
 
 #### player:ready
+
+Direction: client -> server
 
 Update the player ready state. Players need to set themselves to ready (true/false)
 to be placed into a game. A game requires at least two ready players to begin.
@@ -95,12 +77,9 @@ to be placed into a game. A game requires at least two ready players to begin.
 }
 ```
 
-### Server -> Client
-
-**Player messages**
-Player messages are only sent to individual players and not to everyone.
-
 #### player:assigned
+
+Direction: server -> client
 
 The player id was assigned to the connection.
 
@@ -115,6 +94,8 @@ The player id was assigned to the connection.
 ```
 
 #### game:start
+
+Direction: server -> client
 
 If more then one player are ready, the server will start a game after a specified
 delay. After the delay, if more than one player is still ready, the server will
@@ -131,13 +112,12 @@ send the `game:start` message to _all_ players who are in the ready state.
 }
 ```
 
-**Broadcast messages**
-Broadcast messages are are sent to everyone in the topic.
-
 #### player:joined
 
-When a player joins the lobby, all players will receive a message with the new
-player information.
+Direction: server -> client
+
+When a player joins the lobby, the server broadcasts a `player:joined` message
+to all clients.
 
 ```json
 {
@@ -151,10 +131,10 @@ player information.
 
 #### player:left
 
-When a player leaves the lobby, all players will receive a message with the
-information for the player who left. The lobby server monitors the process id
-that was sent when calling `NervesTeamGame.Lobby.add_player/1`. the `player:left`
-message will be delivered if the monitored process dies.
+Direction: server -> client
+
+Similarly when a player disconnects or leaves the lobby, the server sends a
+`player:left` message to all remaining clients.
 
 ```json
 {
@@ -168,9 +148,10 @@ message will be delivered if the monitored process dies.
 
 #### player:list
 
-The player list message is delivered any time a player is added or removed from
-the lobby. This is useful if you do not wish to track a copy of the player list
-through `player:joined` / `player:left` messages.
+Direction: server -> client
+
+For convenience, the server also broadcasts a `player:list` message when the list
+of players in the lobby changes.
 
 ```json
 {
@@ -186,7 +167,9 @@ through `player:joined` / `player:left` messages.
 
 #### game:pending
 
-When more than one player is ready, the server will send the `game:pending` message
+Direction: server -> client
+
+When more than one player is ready, the server sends the `game:pending` message
 to inform all players that a new game will begin shortly.
 
 ```json
@@ -201,9 +184,11 @@ to inform all players that a new game will begin shortly.
 
 #### game:wait
 
+Direction: server -> client
+
 If the server delivers a `game:pending` message and enough players become not
-ready where the number of ready players < 1, the server will cancel the pending
-game and send the `game:wait` message.
+ready where the number of ready players < 1, the server cancels the pending
+game and broadcasts the `game:wait` message.
 
 ```json
 {
@@ -213,13 +198,15 @@ game and send the `game:wait` message.
 }
 ```
 
-## Game messages
+### Game messages
 
-The following example assume the `game_id` assigned from the lobby is `1234`
-
-### Client -> Server
+Once the client receives a `game:start` message in the lobby, it should join the
+topic `game:<game_id>`. This begins the game. The following examples use 1234 as
+the game_id.
 
 #### action:execute
+
+Direction: client -> server
 
 Actions are associated to tasks. In order to win the game, tasks must have their
 actions executed before the task expires. The server needs to know when an action
@@ -235,16 +222,13 @@ has been executed so it can update the game score.
 }
 ```
 
-### Server -> Client
-
-**Player messages**
-Player messages are only sent to individual players and not to everyone.
-
 #### actions:assigned
 
-Before the game starts, the server will assign two actions to each player.
-Each action will contain an id which will be sent to the server when executing
-the action.
+Direction: server -> client
+
+Before the game starts, the server assigns two actions to each player.  Each
+action contains the id to send to the server when invoked by the player and
+the title text to show on the screen.
 
 ```json
 {
@@ -261,8 +245,10 @@ the action.
 
 #### task:assigned
 
-New tasks will be assigned to the player when either their current task has expired
-or their current task's action has been executed by a player.
+Direction: server -> client
+
+The server assigns tasks to players as needed. This occurs at the beginning of
+the game and when tasks get completed by the current player or a teammate.
 
 ```json
 {
@@ -275,14 +261,13 @@ or their current task's action has been executed by a player.
 }
 ```
 
-**Broadcast messages**
-Broadcast messages are are sent to everyone in the topic.
-
 #### game:prepare
 
-Once all required players have joined the game, the server will send the `game:prepare`
-message and begin to distribute tasks and actions. It will wait for the specified
-duration before moving to `game:starting`
+Direction: server -> client
+
+Once all players join the game channel, the server broadcasts the `game:prepare`
+message and then distributes the initial tasks and actions.  Then after the
+specified duration, the client should expect a `game:starting` message.
 
 ```json
 {
@@ -294,11 +279,11 @@ duration before moving to `game:starting`
 }
 ```
 
-#### game:prepare
+#### game:starting
 
-After the `game:prepare` duration is exceeded, the server will send the message
-`game:starting`. This is useful for updating the player's display to inform them
-that all work is done and the game is about to start.
+Direction: server -> client
+
+This message indicates that the game will start soon.
 
 ```json
 {
@@ -312,8 +297,10 @@ that all work is done and the game is about to start.
 
 #### game:start
 
-After the `game:starting` duration is exceeded, the server will send the message
-`game:start` to mark the start of the game.
+Direction: server -> client
+
+After the `game:starting` duration , the server broadcasts `game:start` message
+to mark the start of the game.
 
 ```json
 {
@@ -325,9 +312,11 @@ After the `game:starting` duration is exceeded, the server will send the message
 
 #### game:progress
 
-Game progress is sent at an interval and will represent the percent complete.
-The goal is to get to 100% to win the game. Games are limited to 3 minutes. On every
-tick of the interval, some progress is removed to increase difficulty.
+Direction: server -> client
+
+The server broadcasts the percent complete at regular intervals. The percent
+complete goes both ways as tasks get added by the server and tasks get completed
+by players.
 
 ```json
 {
@@ -341,8 +330,10 @@ tick of the interval, some progress is removed to increase difficulty.
 
 #### game:ended
 
-The server will send the `game:ended` message when game progress == 100 or 0.
-When the games ends, the server will inform the players if they have won or lost.
+Direction: server -> client
+
+The server broadcasts the `game:ended` message when game is won (progress == 100)
+or lost (progress == 0).
 
 ```json
 {
