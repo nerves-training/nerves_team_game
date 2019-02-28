@@ -1,5 +1,9 @@
 # NervesTeam Game Messaging
 
+NOTE: This document is in a strange place since this repository has the game
+logic and none of the Phoenix channel "glue". For training purposes, it seemed
+like the easiest place to put it.
+
 This document describes the game messaging between a NervesTeam game server and
 clients over a Phoenix Channel connection.
 
@@ -344,3 +348,8 @@ or lost (progress == 0).
   }
 }
 ```
+
+## Message flow
+
+![ladder](docs/NervesTeamLadders.png)
+
