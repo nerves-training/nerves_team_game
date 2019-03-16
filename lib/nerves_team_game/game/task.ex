@@ -48,7 +48,8 @@ defmodule NervesTeamGame.Game.Task do
     {:gaurd_clause, "guard\nclause", "where"},
     {:with, "with", "with"},
     {:enum, "enum", "enum"},
-    {:case, "case", "case"}
+    {:case, "case", "case"},
+    {:chicago_elixir, "Chicago\nElixir", "Awesome!"}
   ]
 
   def all do
