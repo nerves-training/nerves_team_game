@@ -32,7 +32,23 @@ defmodule NervesTeamGame.Game.Task do
     {:exception, "Exception", "rescue"},
     {:format, "Unformatted\ncode", "mix\nformat"},
     {:typespec, "typespec\nerror", "mix\ndialyzer"},
-    {:new_proj, "New\nproject", "mix\nnew"}
+    {:new_proj, "New\nproject", "mix\nnew"},
+    {:grisp, "Bare\nMetal", "GRiSP"},
+    {:nerves_key, "private\nkey", "Nerves\nKey"},
+    {:jose, "valim", "josé"},
+    {:ssh, "ssh\nupdate", "upload.sh"},
+    {:circuits_i2c, "I2C", "circuits\ni2c"},
+    {:circuits_spi, "SPI", "circuits\nspi"},
+    {:circuits_gpio, "GPIO", "circuits\ngpio"},
+    {:firmware_vsn, "firmware\nvsn", "uname"},
+    {:math, "1+1", "2"},
+    {:linuxcmd, "linux\ncmd", "cmd"},
+    {:length, "length", "length"},
+    {:pattern_match, "pattern\nmatch", "pattern\nmatch"},
+    {:gaurd_clause, "guard\nclause", "where"},
+    {:with, "with", "with"},
+    {:enum, "enum", "enum"},
+    {:case, "case", "case"}
   ]
 
   def all do

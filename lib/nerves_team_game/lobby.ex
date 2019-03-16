@@ -19,7 +19,7 @@ defmodule NervesTeamGame.Lobby do
 
   alias NervesTeamGame.{GameSupervisor, Player}
 
-  @ids "ABCDEFGHIJKLMNOPQRSTUVWXYZ" |> String.graphemes()
+  @ids "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890" |> String.graphemes()
   @start_delay 2_000
 
   @doc """
